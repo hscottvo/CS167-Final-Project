@@ -27,34 +27,34 @@ object BeastScala {
     SparkSQLRegistration.registerUDT
     SparkSQLRegistration.registerUDF(sparkSession)
 
-    val operation: String = args(0)
-    val inputFile: String = args(1)
+    val inputFile: String = args(0)
+    val startDate: String = args(1)
+    val endDate: String = args(2)
     try {
       // Import Beast features
       import edu.ucr.cs.bdlab.beast._
       val t1 = System.nanoTime()
       var validOperation = true
 
-      operation match {
-        case "count-by-county" =>
-        // TODO count the total number of tweets for each county and display on the screen
-        case "convert" =>
-          val outputFile = args(2)
-        // TODO add a CountyID column to the tweets, parse the text into keywords, and write back as a Parquet file
-        case "count-by-keyword" =>
-          val keyword: String = args(2)
-        // TODO count the number of occurrences of each keyword per county and display on the screen
-        case "choropleth-map" =>
-          val keyword: String = args(2)
-          val outputFile: String = args(3)
-        // TODO write a Shapefile that contains the count of the given keyword by county
-        case _ => validOperation = false
-      }
+      val df = sparkSession.read.parquet(inputFile)
+//      df.printSchema()
+      df.createOrReplaceTempView("data")
+
+      sparkSession.sql(
+        s"""
+                SELECT COMMON_NAME, to_date(OBSERVATION_DATE, 'yyyy-MM-dd')
+                FROM data
+                WHERE to_date(OBSERVATION_DATE, 'yyyy-MM-dd') BETWEEN TO_DATE(CAST(UNIX_TIMESTAMP(CAST($startDate AS VARCHAR), 'MM/dd/yyyy') AS TIMESTAMP))
+                AND TO_DATE(CAST(UNIX_TIMESTAMP(CAST($endDate as VARCHAR), 'MM/dd/yyyy') AS TIMESTAMP))
+                LIMIT 20
+                """).foreach(row => println(s"${row.get(0)}\t${row.get(1)}"))
+
+
       val t2 = System.nanoTime()
       if (validOperation)
-        println(s"Operation '$operation' on file '$inputFile' took ${(t2 - t1) * 1E-9} seconds")
+        println(s"Operation on file '$inputFile' took ${(t2 - t1) * 1E-9} seconds")
       else
-        Console.err.println(s"Invalid operation '$operation'")
+        Console.err.println(s"Invalid operation")
     } finally {
       sparkSession.stop()
     }
