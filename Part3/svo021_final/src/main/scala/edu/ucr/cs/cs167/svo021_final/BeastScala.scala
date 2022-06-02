@@ -40,14 +40,15 @@ object BeastScala {
 //      df.printSchema()
       df.createOrReplaceTempView("data")
 
-      sparkSession.sql(
+      val query = sparkSession.sql(
         s"""
-                SELECT COMMON_NAME, to_date(OBSERVATION_DATE, 'yyyy-MM-dd')
+                SELECT COMMON_NAME, SUM(OBSERVATION_COUNT)
                 FROM data
-                WHERE to_date(OBSERVATION_DATE, 'yyyy-MM-dd') BETWEEN TO_DATE(CAST(UNIX_TIMESTAMP(CAST($startDate AS VARCHAR), 'MM/dd/yyyy') AS TIMESTAMP))
-                AND TO_DATE(CAST(UNIX_TIMESTAMP(CAST($endDate as VARCHAR), 'MM/dd/yyyy') AS TIMESTAMP))
-                LIMIT 20
-                """).foreach(row => println(s"${row.get(0)}\t${row.get(1)}"))
+                WHERE to_date(OBSERVATION_DATE, 'yyyy-MM-dd') BETWEEN TO_DATE('$startDate', 'MM/dd/yyyy')
+                AND TO_DATE('$endDate', 'MM/dd/yyyy')
+                GROUP BY COMMON_NAME
+                """).coalesce(1).write.csv("eBirdObservationsTime.csv")
+
 
 
       val t2 = System.nanoTime()
