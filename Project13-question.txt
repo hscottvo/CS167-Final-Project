@@ -1,0 +1,4 @@
+What was the SQL query used to compute / create the ratio column?
+SELECT totalsum_by_zipcode.ZIPCode, (speciessum_by_zipcode.species_sum_observations / totalsum_by_zipcode.tot_sum_observations) AS ratio
+SELECT ZIPCode, SUM(OBSERVATION_COUNT) as species_sum_observations
+SELECT ZIPCode, SUM(OBSERVATION_COUNT) as tot_sum_observations
